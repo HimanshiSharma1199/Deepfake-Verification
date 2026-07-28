@@ -1,0 +1,21 @@
+# Python
+backend/venv/
+backend/.venv/
+__pycache__/
+*.pyc
+
+# Node
+frontend/node_modules/
+
+# Environment
+.env
+
+# VS Code
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
+backend/uploads/
+backend/models/weights/best_xception.pth
+backend/models/weights/xception_best.pth
