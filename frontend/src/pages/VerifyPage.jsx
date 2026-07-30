@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Badg
 import { AnalysisTimeline } from '../components/dashboard/AnalysisTimeline';
 import { useToast } from '../components/ui/Toast';
 import { MEDIA_TYPES, VERDICT, getVerdict } from '../constants/navigation';
-import { verifyImage } from '../services/api';
+import { verifyImage, verifyVideo } from '../services/api';
 import { cn } from '../utils';
 import { slideUp, staggerContainer } from '../animations';
 
@@ -52,44 +52,55 @@ export function VerifyPage() {
   setPhase("analyzing");
 
   try {
-    const res = await verifyImage(file);
+    let res;
+
+    if (mediaType === "image") {
+      res = await verifyImage(file);
+    } else if (mediaType === "video") {
+      res = await verifyVideo(file);
+    } else {
+      throw new Error("Media type not supported yet.");
+    }
 
     const isReal = res.prediction.toUpperCase() === "REAL";
 
-    const score = Number(
-  (
-    isReal
-      ? 100 - Number(res.confidence)
-      : Number(res.confidence)
-  ).toFixed(2)
-);
+    const score = Number(res.confidence.toFixed(2));
 
-setResult({
-  score,
-  verdict: isReal ? "authentic" : "manipulated",
-  flags: [],
-  processedIn: "1.2 sec",
-});
-
+        setResult({
+      score,
+      confidence: res.confidence,
+      verdict: isReal ? "success" : "danger",
+      flags: [],
+      processedIn: "1.2 sec",
+      fakeFrames: res.fake_frames ?? 0,
+      realFrames: res.real_frames ?? 0,
+      analyzedFrames: res.analyzed_frames ?? 0,
+      totalFrames: res.total_frames ?? 0,
+    });
     setPhase("result");
 
     toast({
       type: "success",
       title: "Analysis Complete",
-      description: `${isReal ? "REAL" : "FAKE"} (${res.confidence}%)`,
+      description: `${res.prediction} (${res.confidence}%)`,
     });
 
   } catch (err) {
-    console.error(err);
+  console.error("FULL ERROR:", err);
+  console.log("Response:", err.response);
+  console.log("Data:", err.response?.data);
 
-    setPhase("idle");
+  setPhase("idle");
 
-    toast({
-      type: "error",
-      title: "Analysis Failed",
-      description: "Backend connection failed.",
-    });
-  }
+  toast({
+    type: "error",
+    title: "Analysis Failed",
+    description:
+      err.response?.data?.detail ||
+      err.message ||
+      "Unknown Error",
+  });
+}
 };
 
   const handleReset = () => {
@@ -270,12 +281,13 @@ setResult({
                         value={result.score}
                         size={140}
                         strokeWidth={12}
+                        tone={result.verdict === "success" ? "success" : "danger"}
                         label={`${result.score}%`}
-                        sublabel="manipulation score"
+                        sublabel={result.verdict === "success" ? "authenticity score": "manipulation score"}
                       />
-                      <Badge tone={verdictTone[getVerdict(result.score)]} variant="solid" className="text-sm px-4 py-1">
-                        {result.verdict === 'authentic' ? <FileCheck2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                        {VERDICT[getVerdict(result.score)].label}
+                      <Badge tone={result.verdict === "success" ? "success" : "danger"} variant="solid" className="text-sm px-4 py-1">
+                        {result.verdict === "success" ? <FileCheck2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                        {result.verdict === "success" ? "Authentic": "Likely Manipulated"}
                       </Badge>
                     </div>
 
@@ -302,8 +314,37 @@ setResult({
                     {/* Meta */}
                     <div className="rounded-xl border border-slate-200/60 dark:border-slate-800/60 p-3 space-y-1.5">
                       <div className="flex justify-between text-sm"><span className="text-slate-400">Processing time</span><span className="font-medium">{result.processedIn}</span></div>
-                      <div className="flex justify-between text-sm"><span className="text-slate-400">Verdict</span><span className="font-medium">{VERDICT[getVerdict(result.score)].label}</span></div>
-                      <div className="flex justify-between text-sm"><span className="text-slate-400">Confidence</span><span className="font-medium text-success-600">High</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-slate-400">Verdict</span><span className="font-medium">{result.verdict === "success" ? "Authentic": "Likely Manipulated"}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-slate-400">Confidence</span><span className={`font-medium ${ result.verdict === "success"? "text-success-600": "text-danger-600"}`}>{Number(result.confidence).toFixed(2)}% </span></div>
+                      {mediaType === "video" && (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">Analyzed Frames</span>
+                          <span className="font-medium">{result.analyzedFrames}</span>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">Real Frames</span>
+                          <span className="font-medium text-green-600">
+                            {result.realFrames}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">Fake Frames</span>
+                          <span className="font-medium text-red-600">
+                            {result.fakeFrames}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">Total Frames</span>
+                          <span className="font-medium">
+                            {result.totalFrames}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     </div>
 
                     {/* Actions */}

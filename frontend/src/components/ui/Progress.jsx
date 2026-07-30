@@ -1,13 +1,19 @@
 import { motion } from 'framer-motion';
 import { cn } from '../../utils';
 
-export function ProgressRing({ value, size = 120, strokeWidth = 10, className, label, sublabel }) {
+export function ProgressRing({value,size = 120,strokeWidth = 10,className,label,sublabel,tone = "warning",  }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
 
   const colorClass =
-    value >= 75 ? 'text-danger-500' : value >= 50 ? 'text-warning-500' : value >= 25 ? 'text-secondary-500' : 'text-success-500';
+    tone === "success"
+    ? "text-success-500"
+    : tone === "danger"
+    ? "text-danger-500"
+    : tone === "warning"
+    ? "text-warning-500"
+    : "text-primary-500";
 
   return (
     <div className={cn('relative inline-flex items-center justify-center', className)} style={{ width: size, height: size }}>

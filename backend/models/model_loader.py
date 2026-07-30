@@ -11,6 +11,8 @@ MODEL_PATH = os.path.join(
     "weights",
     "best_model-v3.pt"
 )
+print("MODEL PATH =", MODEL_PATH)
+print("FILE EXISTS =", os.path.exists(MODEL_PATH))
 
 # Load EfficientNet-B0
 weights = EfficientNet_B0_Weights.IMAGENET1K_V1

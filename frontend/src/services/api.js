@@ -4,7 +4,7 @@ import { getVerdict } from '../constants/navigation';
 
 const api = axios.create({
   baseURL: 'http://127.0.0.1:8000',
-  timeout: 10000,
+  timeout: 120000,
 });
 
 api.interceptors.request.use((config) => {
@@ -81,6 +81,22 @@ export async function verifyImage(file) {
 
   const response = await api.post(
     "/predict/image",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
+  return response.data;
+}
+export async function verifyVideo(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post(
+    "/predict/video",
     formData,
     {
       headers: {

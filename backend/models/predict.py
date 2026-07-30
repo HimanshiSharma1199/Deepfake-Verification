@@ -1,9 +1,8 @@
 from PIL import Image
 import torch
 from torchvision import transforms
-
 from .model_loader import get_model, get_device
-
+import cv2
 # Load model only once
 model = get_model()
 device = get_device()
@@ -47,6 +46,35 @@ def predict_image(image_path: str):
     confidence = float(probabilities[prediction_index].item() * 100)
     print("Raw probabilities:", probabilities.cpu().numpy())
     print("Predicted index:", prediction_index)
+
+    return {
+        "prediction": prediction,
+        "confidence": round(confidence, 2)
+    }
+
+
+
+def predict_frame(frame):
+    """
+    Predict directly from an OpenCV frame (numpy array).
+    """
+
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image = Image.fromarray(image)
+
+    tensor = transform(image).unsqueeze(0).to(device)
+
+    with torch.no_grad():
+        outputs = model(tensor)
+        probabilities = torch.softmax(outputs, dim=1)[0]
+
+    prediction_index = torch.argmax(probabilities).item()
+
+    labels = ["REAL", "FAKE"]
+
+    prediction = labels[prediction_index]
+
+    confidence = float(probabilities[prediction_index].item() * 100)
 
     return {
         "prediction": prediction,
